@@ -11,7 +11,7 @@
            ============================================================
         */
         :root {
-            --https://script.google.com/macros/s/AKfycbwuEY0zKMfeK7oD-Um3jm4YqJOEzGTh7nrpge28vmXsE7fGSRkg4DB4xTmCr9rNq8-c/exec";
+            --google-sheet-url: "https://script.google.com/macros/s/AKfycbwuEY0zKMfeK7oD-Um3jm4YqJOEzGTh7nrpge28vmXsE7fGSRkg4DB4xTmCr9rNq8-c/exec";
             
             /* Hotel Name Parts */
             --hotel-en-1: "BREW";
@@ -41,7 +41,7 @@
 
         /* --- UI CORE --- */
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--page-bg); color: #333; font-family: 'Poppins', 'Noto Sans Ethiopic', sans-serif; padding-bottom: 100px; }
+        body { background: var(--page-bg); color: #333; font-family: 'Poppins', 'Noto Sans Ethiopic', sans-serif; padding-bottom: 120px; }
         
         #pageLoader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .spinner { width: 45px; height: 45px; border: 5px solid #eee; border-top: 5px solid var(--brand-primary); border-radius: 50%; animation: spin 1s linear infinite; }
@@ -85,7 +85,11 @@
         table { width: 100%; border-collapse: collapse; }
         td { padding: 12px 5px; border-bottom: 1px solid #eee; }
         .price-box { width: 100px !important; font-weight: bold; text-align: center; border: 2px solid var(--brand-primary) !important; }
-        input, select { width: 100%; padding: 12px; margin: 4px 0; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; }
+        input, select, textarea { width: 100%; padding: 12px; margin: 4px 0; border: 1px solid #ccc; border-radius: 8px; font-size: 14px; }
+        
+        /* Developer Portal Styles */
+        #dev-portal { display:none; border: 2px dashed #007bff; padding: 15px; margin: 20px; background: #f9f9f9; text-align: left; }
+        .dev-trigger { text-align: center; margin-top: 40px; opacity: 0.3; font-size: 12px; cursor: pointer; color: var(--header-bg); }
     </style>
 </head>
 <body onclick="APP.closeOnOutside(event)">
@@ -152,9 +156,26 @@
     </div>
 </div>
 
+<!-- Extra Admin Modals -->
 <div id="editCatModal" class="overlay"><div class="modal" onclick="event.stopPropagation()"><h3>Rename Category</h3><input type="text" id="eCatEn"><input type="text" id="eCatAm"><button onclick="APP.applyCatRename()" class="btn" style="background:#27ae60; width:100%;">SAVE RENAME</button></div></div>
 <div id="catModal" class="overlay"><div class="modal" onclick="event.stopPropagation()"><h3>New Category</h3><input type="text" id="nCatId" placeholder="ID"><input type="text" id="nCatEn"><input type="text" id="nCatAm"><input type="file" onchange="APP.handleImg(this)"><button onclick="APP.createNewCat()" class="btn" style="background:#8e44ad; width:100%;">CREATE</button></div></div>
 <div id="itemModal" class="overlay"><div class="modal" onclick="event.stopPropagation()"><h3>Add New Item</h3><select id="nItemCat"></select><input type="text" id="nItemEn" placeholder="EN"><input type="text" id="nItemAm" placeholder="AM"><input type="text" id="nItemIng" placeholder="Ingredients"><input type="text" id="nItemPrice" placeholder="Price"><input type="file" onchange="APP.handleImg(this)"><button onclick="APP.createNewItem()" class="btn" style="background:#27ae60; width:100%;">ADD TO MENU</button></div></div>
+
+<!-- DEVELOPER PORTAL (Bottom Access) -->
+<div class="dev-trigger" onclick="document.getElementById('dev-portal').style.display='block'">FEMA Developer Access</div>
+
+<div id="dev-portal">
+  <div style="display:flex; justify-content:space-between;">
+      <h4 style="color: #007bff;">FEMA Developer Bulk Loader</h4>
+      <span onclick="document.getElementById('dev-portal').style.display='none'" style="cursor:pointer; font-weight:bold;">&times;</span>
+  </div>
+  <p style="font-size: 11px; margin-bottom: 10px;">Paste JSON from Gemini and click Sync.</p>
+  <textarea id="bulk-data-input" rows="8" style="font-family: monospace; font-size: 11px;" placeholder='[ ["cat1", "Name", "ስም", "", "500", "", "no", "item1"] ]'></textarea>
+  <button onclick="runBulkSync()" style="margin-top: 10px; background: #28a745; color: white; border: none; padding: 12px; cursor: pointer; width: 100%; border-radius: 8px; font-weight: bold;">
+    🚀 Sync to Google Sheet
+  </button>
+  <div id="sync-status" style="margin-top: 8px; font-size: 13px;"></div>
+</div>
 
 <script>
     const APP = {
@@ -170,10 +191,7 @@
             
             try {
                 loadTxt.innerText = "Connecting... 40%";
-                // High Speed Fix: Removed ?t= timestamp to allow browser caching
                 const r = await fetch(sheetUrl); 
-                
-                loadTxt.innerText = "Connecting... 75%";
                 const j = await r.json();
                 
                 loadTxt.innerText = "Connecting... 95%";
@@ -319,47 +337,37 @@
         },
         closeOnOutside: function(e) { if(e.target.className==='overlay') this.closeModals(); }
     };
-    window.onload = () => APP.init();
-</script>
-    <!-- Developer Bulk Loader -->
-<div id="dev-portal" style="border: 2px dashed #007bff; padding: 15px; margin: 20px; background: #f9f9f9;">
-  <h4 style="color: #007bff;">FEMA Developer Bulk Loader</h4>
-  <p style="font-size: 12px;">Paste the JSON data from Gemini below and click Sync.</p>
-  
-  <textarea id="bulk-data-input" rows="10" style="width: 100%; font-family: monospace; font-size: 11px;" placeholder='[ ["cat1", "Item Name", "ስም", "", "500", "", "", "item1"], ... ]'></textarea>
-  
-  <button onclick="runBulkSync()" style="margin-top: 10px; background: #28a745; color: white; border: none; padding: 10px 20px; cursor: pointer; width: 100%;">
-    🚀 Sync to Google Sheet
-  </button>
-  <div id="sync-status" style="margin-top: 5px; font-weight: bold;"></div>
-</div>
 
-<script>
-function runBulkSync() {
-  const status = document.getElementById('sync-status');
-  const rawData = document.getElementById('bulk-data-input').value;
-  
-  try {
-    const parsedData = JSON.parse(rawData);
-    status.innerText = "Connecting to Sheet...";
-    
-    google.script.run
-      .withSuccessHandler(res => {
-        status.style.color = "green";
-        status.innerText = res;
-        document.getElementById('bulk-data-input').value = ""; // Clear on success
-      })
-      .withFailureHandler(err => {
-        status.style.color = "red";
-        status.innerText = "Error: " + err;
-      })
-      .bulkInsertMenu(parsedData);
-      
-  } catch (e) {
-    status.style.color = "red";
-    status.innerText = "Invalid Data Format. Check the JSON.";
-  }
-}
+    window.onload = () => APP.init();
+
+    // DEVELOPER SYNC LOGIC
+    function runBulkSync() {
+        const status = document.getElementById('sync-status');
+        const rawData = document.getElementById('bulk-data-input').value.trim();
+        
+        try {
+            const parsedData = JSON.parse(rawData);
+            status.style.color = "blue";
+            status.innerText = "⏳ Connecting to Google Sheet...";
+            
+            google.script.run
+                .withSuccessHandler(res => {
+                    status.style.color = "green";
+                    status.innerText = res;
+                    document.getElementById('bulk-data-input').value = ""; 
+                })
+                .withFailureHandler(err => {
+                    status.style.color = "red";
+                    status.innerText = "❌ Connection Error: " + err;
+                    console.error(err);
+                })
+                .bulkInsertMenu(parsedData);
+                
+        } catch (e) {
+            status.style.color = "red";
+            status.innerText = "❌ JSON Format Error. Check brackets/commas.";
+        }
+    }
 </script>
 </body>
 </html>

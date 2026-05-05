@@ -321,5 +321,45 @@
     };
     window.onload = () => APP.init();
 </script>
+    <!-- Developer Bulk Loader -->
+<div id="dev-portal" style="border: 2px dashed #007bff; padding: 15px; margin: 20px; background: #f9f9f9;">
+  <h4 style="color: #007bff;">FEMA Developer Bulk Loader</h4>
+  <p style="font-size: 12px;">Paste the JSON data from Gemini below and click Sync.</p>
+  
+  <textarea id="bulk-data-input" rows="10" style="width: 100%; font-family: monospace; font-size: 11px;" placeholder='[ ["cat1", "Item Name", "ስም", "", "500", "", "", "item1"], ... ]'></textarea>
+  
+  <button onclick="runBulkSync()" style="margin-top: 10px; background: #28a745; color: white; border: none; padding: 10px 20px; cursor: pointer; width: 100%;">
+    🚀 Sync to Google Sheet
+  </button>
+  <div id="sync-status" style="margin-top: 5px; font-weight: bold;"></div>
+</div>
+
+<script>
+function runBulkSync() {
+  const status = document.getElementById('sync-status');
+  const rawData = document.getElementById('bulk-data-input').value;
+  
+  try {
+    const parsedData = JSON.parse(rawData);
+    status.innerText = "Connecting to Sheet...";
+    
+    google.script.run
+      .withSuccessHandler(res => {
+        status.style.color = "green";
+        status.innerText = res;
+        document.getElementById('bulk-data-input').value = ""; // Clear on success
+      })
+      .withFailureHandler(err => {
+        status.style.color = "red";
+        status.innerText = "Error: " + err;
+      })
+      .bulkInsertMenu(parsedData);
+      
+  } catch (e) {
+    status.style.color = "red";
+    status.innerText = "Invalid Data Format. Check the JSON.";
+  }
+}
+</script>
 </body>
 </html>
